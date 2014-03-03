@@ -1,0 +1,81 @@
+#!/usr/bin/env python
+"""
+BIF 30806 Advanced bioinformatics
+RNAseq data analysis project
+Project selection: A
+Perform a differential gene expression analysis comparing RNASeq data from two different conditions
+Project Team: Cassava
+Authors: Anna Deneer, Stefano Donati,Marta Godiaperello, Jiao Long, Rik van Rosmalen 
+"""
+
+
+import os
+import sys
+from Bio import SeqIO
+import argparse
+from subprocess import check_call
+
+def main():
+	global args
+	dest= """usage: %prog [options] reads.[fastaq|sra]+ 
+	convert sra files to fastq format and use it or the given fastq files to implement 
+	differential gene expression analysis pipeline """
+	
+	parser = argparse.ArgumentParser(description=dest)
+	parser.add_argument('-f','--fastq',dest='fq',nargs='*',default='',help = 'input fastq files ')
+	parser.add_argument('-fd','--fastq-directory',dest='FqDir',nargs='*',default='',help = 'location of fastq files directory')
+	parser.add_argument('-s','--sra-reader',dest='sra',default='',nargs='*',help = 'input sra files')
+	parser.add_argument('-sd','--sra-directory',dest='SraDir',nargs='*',default='',help = 'location of sra files directory')
+	parser.add_argument('-g', '--referenceGenome', dest='genome',nargs='*',required=True, default='',help='genome in fasta format')
+	parser.add_argument('-c', '--conditions', dest='conditions',nargs=1, default='2',help='number of conditions')
+	parser.add_argument('-o', '--output', dest='output',nargs=1, default='output.txt',help='output file')
+	args = parser.parse_args(['-g','test'])
+	
+	if (args.fq == '' and args.sra =='' and args.FqDir=='' and args.SraDir==''):
+		print >> sys.stderr, "[ERROR] No input files. Please specify either location of directory or the input files"
+		sys.exit(1)
+	# more exceptions need to be added.
+	
+	print args
+	process()
+	
+def fastq_dump():
+
+	global args
+	if args.sra!='':
+		for s_f in args.sra:
+			#SRA toolkit "fastq-dump" utility:
+			#fastq-dump --split-3 or -split-files converts sra file to single fastq output file if single-end sequencing
+			#two or three fastq output files if paired sequencing. If it is paired-end sequencing data, 
+			#Two files (with suffix "_1" and "_2") are matched mate-pair read file where as the third one (without any suffix) 
+			#contains all the reads that do not have any mate-paires (or SRA couldn't resolve mate-paires for them).
+ 			#http://vinaykmittal.blogspot.nl/2012/02/how-to-extract-paired-end-reads-from.html
+			#Therefore the files with suffix_1,_2 are not technical replicates, we have to take it into account. 
+			
+			check_call('fastq-dump --split-3 %s' % args.sra[s_f],shell=True)
+			#extension: converts to a tmp directory.
+	elif arg.SraDir !='':
+		count = 0
+		for file in os.listdir(arg.SraDir):
+    		if file.endswith(".sra"):
+    			ch\
+	eck_call('fastq-dump --split-3 %s' % file,shell=True)
+    			count+=1
+    	if count==0:
+    		print >> sys.stderr, "[ERROR] No SRA files in the directory."
+			sys.exit(1)
+	
+def process():
+	fastq_dump()
+	
+	good_reads = (rec for rec in SeqIO.parse("sample_1.fastq", "fastq") if min(rec.letter_annotations["phred_quality"]) >= 20)
+		count = SeqIO.write(good_reads, "good_quality.fastq", "fastq")
+		print("Saved %i reads" % count)
+	
+    	
+
+######################################
+# main
+######################################
+if __name__ == "__main__":
+	main()
