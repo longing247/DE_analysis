@@ -36,23 +36,36 @@ def argument_parser():
 	parser.add_argument('-c', '--conditions', dest='conditions',nargs=2, default='2',help='number of conditions')
 	parser.add_argument('-o', '--output', dest='output',nargs=1, default='output.txt',help='output file')
 	args = parser.parse_args()
+
+        #Validation of system argument variable
 	
 	if (args.fastq == '' and args.sra ==''):
                 print >> sys.stderr, "[ERROR] No input file directory. Please specify two directores path where stores sra files"
                 sys.exit(1)
-        # only one format will be defined     
-##        if not (os.path.isdir(args.fastq[0]) or os.path.isdir(args.sra[0])):
-##                print >> sys.stderr, "[ERROR] Incorrect system director"
-##                sys.exit(1)
-        if (args.fastq != '' and args.sra !=''):
-                print >> sys.stderr, "[ERROR] Too many arguments."
-                sys.exit(1)
+        if args.inputFormat == ['sra']:
+                if len(args.sra)!=2:
+                        print >> sys.stderr, "[ERROR] Two directories path are expected. Please specify two directores path where stores sra files"
+                        sys.exit(1)
+                else:
+                        if os.path.isdir(args.fastq[0]) == False or os.path.isdir(args.fastq[1])==False:
+                                print >> sys.stderr, "[ERROR] Two valid directories path are expected. Please specify two directores path where stores sra files"
+                                sys.exit(1)
+        if args.inputFormat == ['fastq']:
+                if len(args.sra)!=2:
+                        print >> sys.stderr, "[ERROR] Two directories path are expected. Please specify two directores path where stores fastq files"
+                        sys.exit(1)
+                else:
+                        if os.path.isdir(args.sra[0]) == False or os.path.isdir(args.sra[1])==False:
+                                print >> sys.stderr, "[ERROR] Two valid directories path are expected. Please specify two directores path where stores fastq files"
+                                sys.exit(1)
+
         
         # more exceptions need to be raised.
 
-       
+
         
 def main():
+        fastq_dump_path = '/local/prog/sratoolkit/bin/fastq-dump'
 	global args
 	argument_parser()
 	if args.inputFormat==['sra']:# every argument parser option returns to a list of objects.
@@ -66,19 +79,15 @@ def main():
                 #       for file in os.listdir(s_f):
                 #               if file.endswith('.sra'): or if file.endswith('.fq'):
                 #                       do something
+                process()
 
+                
         elif args.inputFormat == ['fastq']:
-                
+                process()
 
 
 
-
-                
-##                process(args) ###---------------------------here to start
-##	elif args.inputFormat==['fastq']:
-##                process(args) ###---------------------------here to start
-##                
-##	
+	
 def fastq_dump(args):
         """
         converts sra files to fastq files and outputs to the original directory.
@@ -97,7 +106,7 @@ def fastq_dump(args):
                 for file in os.listdir(s_f):
                         if file.endswith('.sra'):
                                 #path+file.name
-                                check_call('/local/prog/sratoolkit/bin/fastq-dump --split-3 %s -O %s' % (s_f+file,s_f),shell=True)
+                                check_call('%s --split-3 %s -O %s' % (fastq_dump_path,s_f+file,s_f),shell=True)
                                 #converts sra files to fastq format and outputs to the original directory
                                 #extension: converts to a tmp directory.
                                 count+=1
@@ -106,8 +115,8 @@ def fastq_dump(args):
                 print >> sys.stderr, "[ERROR] No SRA files in the directory."
 		sys.exit(1)
 	
-##def process(): # following methods eg. filter(args), trimming(args)
-##        print 1
+def process(): # following methods eg. filter(args), trimming(args)
+        print '1'
 ##	good_reads = (rec for rec in SeqIO.parse("sample_1.fastq", "fastq") if min(rec.letter_annotations["phred_quality"]) >= 20)
 ##	count = SeqIO.write(good_reads, "good_quality.fastq", "fastq")
 ##	print("Saved %i reads" % count)
@@ -115,7 +124,7 @@ def fastq_dump(args):
     	
 
 ######################################
-# main
+# main                               #
 ######################################
 if __name__ == "__main__":
 	main()
