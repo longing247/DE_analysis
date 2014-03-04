@@ -32,7 +32,7 @@ def argument_parser():
 	#parser.add_argument('-s','--sra-reader',dest='sra',default='',nargs='*',help = 'input sra files')
 	parser.add_argument('-s','--sra-directory',dest='sra',nargs=2,default='',help = 'two sra files directory path where stores the biological replicates datasets in two conditions ')
 
-	parser.add_argument('-g', '--referenceGenome', dest='genome',nargs='*',required=True, default='',help='genome in fasta format')
+	parser.add_argument('-g', '--referenceGenome-dir', dest='genome',nargs='*',required=True, default='',help='genome in fasta format')
 	parser.add_argument('-c', '--conditions', dest='conditions',nargs=2, default='2',help='number of conditions')
 	parser.add_argument('-o', '--output', dest='output',nargs=1, default='output.txt',help='output file')
 	args = parser.parse_args()
@@ -40,15 +40,17 @@ def argument_parser():
 	if (args.fastq == '' and args.sra ==''):
                 print >> sys.stderr, "[ERROR] No input file directory. Please specify two directores path where stores sra files"
                 sys.exit(1)
-     
-        if not (os.path.isdir(args.fastq[0]) or os.path.isdir(args.sra[0])):
-                print >> sys.stderr, "[ERROR] Incorrect system director"
-                sys.exit(1)
+        # only one format will be defined     
+##        if not (os.path.isdir(args.fastq[0]) or os.path.isdir(args.sra[0])):
+##                print >> sys.stderr, "[ERROR] Incorrect system director"
+##                sys.exit(1)
         if (args.fastq != '' and args.sra !=''):
                 print >> sys.stderr, "[ERROR] Too many arguments."
                 sys.exit(1)
         
-        # more exceptions need to be raise.
+        # more exceptions need to be raised.
+
+       
         
 def main():
 	global args
@@ -64,12 +66,23 @@ def main():
                 #       for file in os.listdir(s_f):
                 #               if file.endswith('.sra'): or if file.endswith('.fq'):
                 #                       do something
-                process(args) ###---------------------------here to start
-	elif args.inputFormat==['fastq']:
-                process(args) ###---------------------------here to start
+
+        elif args.inputFormat == ['fastq']:
                 
-	
+
+
+
+
+                
+##                process(args) ###---------------------------here to start
+##	elif args.inputFormat==['fastq']:
+##                process(args) ###---------------------------here to start
+##                
+##	
 def fastq_dump(args):
+        """
+        converts sra files to fastq files and outputs to the original directory.
+        """
         
 	count = 0 # number of sra files in the directories.
 	for s_f in args.sra:
@@ -83,7 +96,8 @@ def fastq_dump(args):
 
                 for file in os.listdir(s_f):
                         if file.endswith('.sra'):
-                                check_call('fastq-dump --split-3 %s -O %s' % (file,s_f),shell=True)
+                                #path+file.name
+                                check_call('/local/prog/sratoolkit/bin/fastq-dump --split-3 %s -O %s' % (s_f+file,s_f),shell=True)
                                 #converts sra files to fastq format and outputs to the original directory
                                 #extension: converts to a tmp directory.
                                 count+=1
@@ -92,8 +106,8 @@ def fastq_dump(args):
                 print >> sys.stderr, "[ERROR] No SRA files in the directory."
 		sys.exit(1)
 	
-def process(): # following methods eg. filter(args), trimming(args)
-        print 1
+##def process(): # following methods eg. filter(args), trimming(args)
+##        print 1
 ##	good_reads = (rec for rec in SeqIO.parse("sample_1.fastq", "fastq") if min(rec.letter_annotations["phred_quality"]) >= 20)
 ##	count = SeqIO.write(good_reads, "good_quality.fastq", "fastq")
 ##	print("Saved %i reads" % count)
