@@ -73,27 +73,30 @@ def main():
 	c2 = '%s '*count_c2
         fastq_quality_trimmer(c1_path)
         fastq_quality_trimmer(c2_path)
-        tophatpairs(args.folder[0],genome)
-        tophatpairs(args.folder[1],genome)
+        print args.genome[0]
+        print args.folder[0]
+        print args.folder[1]
+        tophatpairs(args.folder[0],args.genome[0])
+        tophatpairs(args.folder[1],args.genome[0])
 	
 #fastq-dump converts sra format files into fastq format.
 def fastq_dump(args,fastq_dump_path):
         count_sra1 = 0
 	count_sra2 = 0
-        for file in os.listdir(args.folder[0]):
+        for f in os.listdir(args.folder[0]):
                 tic = time.time()
-                if file.endswith('.sra'):
-                        check_call('%s --split-3 %s -Q 64 -O %s' % (fastq_dump_path,args.folder[0]+file,args.folder[0]),shell=True)#outputs one fastq file if single-ended, two or three fastq files if paired-ended.
+                if f.endswith('.sra'):
+                        #check_call('%s --split-3 %s -Q 64 -O %s' % (fastq_dump_path,args.folder[0]+f,args.folder[0]),shell=True)#outputs one fastq file if single-ended, two or three fastq files if paired-ended.
                         count_sra1 +=1
                 toc = time.time()
                 print 'convert sra file %s in: %s sec' % (file,toc-tic)
-        for file in os.listdir(args.folder[1]):
+        for f in os.listdir(args.folder[1]):
                 tic = time.time()
-                if file.endswith('.sra'):
-                        check_call('%s --split-3 %s -Q 64 -O %s' % (fastq_dump_path,args.folder[1]+file,args.folder[1]),shell=True)
+                if f.endswith('.sra'):
+                        #check_call('%s --split-3 %s -Q 64 -O %s' % (fastq_dump_path,args.folder[1]+f,args.folder[1]),shell=True)
                         count_sra2 +=1
                 toc = time.time()
-                print 'convert sra file %s in: %s sec' % (file,toc-tic)
+                print 'convert sra file %s in: %s sec' % (f,toc-tic)
         if count_sra1==0 or count_sra2==0: 
                 print >> sys.stderr, "[ERROR] Under each given direcotry, SRA files are expected inside the directories."
                 sys.exit(1)        
@@ -101,12 +104,13 @@ def fastq_dump(args,fastq_dump_path):
 #fastq_quality_trimmer
 def fastq_quality_trimmer(path):
         for f in path:
-                tic = time.time()
-		out = f[0]+os.path.splitext(f[1])[0]+'_trimmed.fastq'
-		inp = f[0]+f[1]
-               	check_call(['fastq_quality_trimmer','-t 30','-i',inp,'-o',out])
-               	toc = time.time()
-               	print 'trimming fastq file %s in: %s sec' % (f[1],toc-tic)
+                if f[1].endswith(".fastq") and not f[1].endswith("_trimmed.fastq"):
+                        tic = time.time()
+                        out = f[0]+os.path.splitext(f[1])[0]+'_trimmed.fastq'
+                        inp = f[0]+f[1]
+                        check_call(['fastq_quality_trimmer','-t 30','-i',inp,'-o',out])
+                        toc = time.time()
+                        print 'trimming fastq file %s in: %s sec' % (f[1],toc-tic)
        	
 def tophatpairs(folder,genome):
         forward_paired_end_list = []
@@ -123,10 +127,12 @@ def tophatpairs(folder,genome):
                         else:
                                 unpaired.append(path)
         mkoutdir = 'tophat_output'
-        check_call(['mkdir', mkoutdir])
-        check_call(['tophat2', "-o" , mkoutdir, genome,
+        check_call(['mkdir', os.path.join(folder,mkoutdir)])
+        cmd = ['tophat2', "-o" , mkoutdir, genome,
                     ','.join(forward_paired_end_list),
-                    ','.join(reverse_paired_end_list + unpaired)])
+                    ','.join(reverse_paired_end_list + unpaired)]
+        print cmd
+        check_call(cmd)
         toc = time.time()
         print 'Tophat maps %s with reference genome in %s sec ' % (folder,toc-tic)
    
