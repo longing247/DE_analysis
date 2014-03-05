@@ -71,8 +71,10 @@ def main():
                 sys.exit(1)
         c1 = '%s '*count_c1
 	c2 = '%s '*count_c2
-        fastq_quality_trimmer(c1_path,c2_path)
-        toc = time.clock()
+        fastq_quality_trimmer(c1_path)
+        fastq_quality_trimmer(c2_path)
+        tophatpairs(args.folder[0],genome)
+        tophatpairs(args.folder[1],genome)
 	
 #fastq-dump converts sra format files into fastq format.
 def fastq_dump(args,fastq_dump_path):
@@ -97,21 +99,36 @@ def fastq_dump(args,fastq_dump_path):
                 sys.exit(1)        
        
 #fastq_quality_trimmer
-def fastq_quality_trimmer(c1_path,c2_path):
-        for f in c1_path:
+def fastq_quality_trimmer(path):
+        for f in path:
                 tic = time.time()
 		out = f[0]+os.path.splitext(f[1])[0]+'_trimmed.fastq'
 		inp = f[0]+f[1]
                	check_call(['fastq_quality_trimmer','-t 30','-i',inp,'-o',out])
                	toc = time.time()
                	print 'trimming fastq file %s in: %s sec' % (f[1],toc-tic)
-       	for f in c2_path:
-                tic = time.time()
-		out = f[0]+os.path.splitext(f[1])[0]+'_trimmed.fastq'
-		check_call(['fastq_quality_trimmer','-t 30','-i',inp,'-o',out])
-		toc = time.time()
-		print 'trimming fastq file %s in: %s sec' % (f[1],toc-tic)
-
+       	
+def tophatpairs(folder,genome):
+        forward_paired_end_list = []
+        reverse_paired_end_list = []
+        unpaired = []
+        tic = time.time()
+        for f in os.listdir(folder):
+                path = os.path.join(folder,f) 
+                if f.endswith('_trimmed.fastq'):
+                        if f.endswith('_1_trimmed.fastq'):    
+                                forward_paired_end_list.append(path)        
+                        elif f.endswith('_2_trimmed.fastq'):  
+                                reverse_paired_end_list.append(path)  
+                        else:
+                                unpaired.append(path)
+        mkoutdir = 'tophat_output'
+        check_call(['mkdir', mkoutdir])
+        check_call(['tophat2', "-o" , mkoutdir, genome,
+                    ','.join(forward_paired_end_list),
+                    ','.join(reverse_paired_end_list + unpaired)])
+        toc = time.time()
+        print 'Tophat maps %s with reference genome in %s sec ' % (folder,toc-tic)
    
 def process(): # following methods eg. filter(args), trimming(args)
         print '1'
