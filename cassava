@@ -11,6 +11,7 @@ Authors: Anna Deneer, Stefano Donati,Marta Godia, Jiao Long, Rik van Rosmalen
 
 import os
 import sys
+import time
 #from Bio import SeqIO
 import argparse
 from subprocess import check_call
@@ -20,101 +21,98 @@ def argument_parser():
         parse system arguments into a variable args.
         """
         global args
-	dest= """usage: %prog [options] reads.[fastaq|sra]+ 
+	dest = """usage: %prog [options] reads.[fastaq|sra]+ 
 	convert sra files to fastq format and use it or the given fastq files to implement 
 	differential gene expression analysis pipeline """
 	
 	parser = argparse.ArgumentParser(description=dest)
-        parser.add_argument('-i','--inputFormat',dest='inputFormat',nargs=1,required=True,default='fastq',help = '[Option 1] --inputFormat sra [pOption 2] --inputFormat fastq')
-	#parser.add_argument('-f','--fastq',dest='fq',nargs='*',default='',help = 'input fastq files')
-	parser.add_argument('-f','--fastq-directory',dest='fastq',nargs=2,default='',help = 'two fastq files directory path where stores the biological replicates datasets in two conditions ')
-
-	#parser.add_argument('-s','--sra-reader',dest='sra',default='',nargs='*',help = 'input sra files')
-	parser.add_argument('-s','--sra-directory',dest='sra',nargs=2,default='',help = 'two sra files directory path where stores the biological replicates datasets in two conditions ')
-
-	parser.add_argument('-g', '--referenceGenome-dir', dest='genome',nargs='*',required=True, default='',help='genome in fasta format')
-	parser.add_argument('-c', '--conditions', dest='conditions',nargs=2, default='2',help='number of conditions')
+        parser.add_argument('-f','--inputFormat',dest='inputFormat',nargs=1,required=True,default='fastq',help = '[Option 1] --inputFormat sra [pOption 2] --inputFormat fastq')
+	parser.add_argument('-i','--inputFolder',dest='folder',required=True,nargs=2,default='',help = 'two directory path where stores the biological replicates datasets in two conditions either in sra or fastq format')
+	parser.add_argument('-g', '--referenceGenome', dest='genome',nargs=1,required=True, default='',help='reference genome in GTF format')
+	parser.add_argument('-q', '--fastqQuality', dest='offset',nargs=1, default=64,help='Fastq quality score illumina 1.3+ except 1.8 use Phred+64')
+	#parser.add_argument('-c', '--conditions', dest='conditions',nargs=2, default='2',help='number of conditions')# extention: nr of conditions is flexible 
 	parser.add_argument('-o', '--output', dest='output',nargs=1, default='output.txt',help='output file')
 	args = parser.parse_args()
 
         #Validation of system argument variable
-	
-	if (args.fastq == '' and args.sra ==''):
-                print >> sys.stderr, "[ERROR] No input file directory. Please specify two directores path where stores sra files"
+        	
+        if os.path.isdir(args.folder[0]) == False or os.path.isdir(args.folder[1])==False:
+                print >> sys.stderr, "[ERROR] Two valid directories path is expected. Please specify two directores path where stores experiment datasets"
                 sys.exit(1)
-        if args.inputFormat == ['sra']:
-                if len(args.sra)!=2:
-                        print >> sys.stderr, "[ERROR] Two directories path are expected. Please specify two directores path where stores sra files"
-                        sys.exit(1)
-                else:
-                        if os.path.isdir(args.fastq[0]) == False or os.path.isdir(args.fastq[1])==False:
-                                print >> sys.stderr, "[ERROR] Two valid directories path are expected. Please specify two directores path where stores sra files"
-                                sys.exit(1)
-        if args.inputFormat == ['fastq']:
-                if len(args.sra)!=2:
-                        print >> sys.stderr, "[ERROR] Two directories path are expected. Please specify two directores path where stores fastq files"
-                        sys.exit(1)
-                else:
-                        if os.path.isdir(args.sra[0]) == False or os.path.isdir(args.sra[1])==False:
-                                print >> sys.stderr, "[ERROR] Two valid directories path are expected. Please specify two directores path where stores fastq files"
-                                sys.exit(1)
 
-        
-        # more exceptions need to be raised.
+        # more exceptions might be needed to be thrown.
 
-
-        
 def main():
-        fastq_dump_path = '/local/prog/sratoolkit/bin/fastq-dump'
-	global args
-	argument_parser()
-	if args.inputFormat==['sra']:# every argument parser option returns to a list of objects.
-                fastq_dump(args)
-                #usage:
-                #args.inputFormat returns either ['sra'] or ['fastq'] ---->a list contains a single string
-                #args.sra returns a list of two directory path ---->args.sra[0],args.sra[1]
-                #args.fastq returns a list of two directory path ---->args.fastq[0],args.fastq[1]
-                #to be continued with args:
-                #for s_f in args.sra:
-                #       for file in os.listdir(s_f):
-                #               if file.endswith('.sra'): or if file.endswith('.fq'):
-                #                       do something
-                process()
-
-                
-        elif args.inputFormat == ['fastq']:
-                process()
-
-
-
-	
-def fastq_dump(args):
-        """
-        converts sra files to fastq files and outputs to the original directory.
-        """
         
-	count = 0 # number of sra files in the directories.
-	for s_f in args.sra:
-		#SRA toolkit "fastq-dump" utility:
-		#fastq-dump --split-3 or -split-files converts sra file to single fastq output file if single-end sequencing
-		#two or three fastq output files if paired sequencing. If it is paired-end sequencing data, 
-		#Two files (with suffix "_1" and "_2") are matched mate-pair read file where as the third one (without any suffix) 
-		#contains all the reads that do not have any mate-paires (or SRA couldn't resolve mate-paires for them).
- 		#http://vinaykmittal.blogspot.nl/2012/02/how-to-extract-paired-end-reads-from.html
-		#Therefore the files with suffix_1,_2 are not technical replicates, we have to take it into account. 
-
-                for file in os.listdir(s_f):
-                        if file.endswith('.sra'):
-                                #path+file.name
-                                check_call('%s --split-3 %s -O %s' % (fastq_dump_path,s_f+file,s_f),shell=True)
-                                #converts sra files to fastq format and outputs to the original directory
-                                #extension: converts to a tmp directory.
-                                count+=1
-			
-        if count==0: 
-                print >> sys.stderr, "[ERROR] No SRA files in the directory."
-		sys.exit(1)
+	global args
+        fastq_dump_path = '/local/prog/sratoolkit/bin/fastq-dump'
+	argument_parser()
+	count_c1 = 0
+	count_c2 = 0
+	c1_path = []
+	c2_path = []
 	
+	
+	if args.inputFormat==['sra']:# every argument parser option returns to a list of objects.
+                fastq_dump(args,fastq_dump_path)        
+        
+        # count fastq files in each folder
+        # pass the path and file name to a list as a tuple
+        for file in os.listdir(args.folder[0]):
+                if file.endswith('.fastq') or file.endswith('.fq'):
+                        c1_path+=[(args.folder[0],file)]
+                        count_c1 +=1
+        for file in os.listdir(args.folder[1]):
+                if file.endswith('.fastq')or file.endswith('.fq'):
+                        c2_path+=[(args.folder[1],file)]
+                        count_c2 +=1
+        if count_c1 ==0 or count_c2 ==0: 
+                print >> sys.stderr, "[ERROR] Under each given direcotry, fastq files are expected inside the directories."
+                sys.exit(1)
+        c1 = '%s '*count_c1
+	c2 = '%s '*count_c2
+        fastq_quality_trimmer(c1_path,c2_path)
+        toc = time.clock()
+	
+#fastq-dump converts sra format files into fastq format.
+def fastq_dump(args,fastq_dump_path):
+        count_sra1 = 0
+	count_sra2 = 0
+        for file in os.listdir(args.folder[0]):
+                tic = time.time()
+                if file.endswith('.sra'):
+                        check_call('%s --split-3 %s -Q 64 -O %s' % (fastq_dump_path,args.folder[0]+file,args.folder[0]),shell=True)#outputs one fastq file if single-ended, two or three fastq files if paired-ended.
+                        count_sra1 +=1
+                toc = time.time()
+                print 'convert sra file %s in: %s sec' % (file,toc-tic)
+        for file in os.listdir(args.folder[1]):
+                tic = time.time()
+                if file.endswith('.sra'):
+                        check_call('%s --split-3 %s -Q 64 -O %s' % (fastq_dump_path,args.folder[1]+file,args.folder[1]),shell=True)
+                        count_sra2 +=1
+                toc = time.time()
+                print 'convert sra file %s in: %s sec' % (file,toc-tic)
+        if count_sra1==0 or count_sra2==0: 
+                print >> sys.stderr, "[ERROR] Under each given direcotry, SRA files are expected inside the directories."
+                sys.exit(1)        
+       
+#fastq_quality_trimmer
+def fastq_quality_trimmer(c1_path,c2_path):
+        for f in c1_path:
+                tic = time.time()
+		out = f[0]+os.path.splitext(f[1])[0]+'_trimmed.fastq'
+		inp = f[0]+f[1]
+               	check_call(['fastq_quality_trimmer','-t 30','-i',inp,'-o',out])
+               	toc = time.time()
+               	print 'trimming fastq file %s in: %s sec' % (f[1],toc-tic)
+       	for f in c2_path:
+                tic = time.time()
+		out = f[0]+os.path.splitext(f[1])[0]+'_trimmed.fastq'
+		check_call(['fastq_quality_trimmer','-t 30','-i',inp,'-o',out])
+		toc = time.time()
+		print 'trimming fastq file %s in: %s sec' % (f[1],toc-tic)
+
+   
 def process(): # following methods eg. filter(args), trimming(args)
         print '1'
 ##	good_reads = (rec for rec in SeqIO.parse("sample_1.fastq", "fastq") if min(rec.letter_annotations["phred_quality"]) >= 20)
